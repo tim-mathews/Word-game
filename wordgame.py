@@ -15,26 +15,9 @@ class WordGame:
         self.correct_guesses = []
 
 
-def num_range():
+def num_range(txt):
     '''Gathers range from input. Accounts for various formatting entry.'''
-
-    num_rng = []
-
-    while len(num_rng) < 2:
-        num_rng.clear()
-        # rng = input("Enter the range of word lengths (low,high): ")
-        nums_str = ""
-        rng = txtinput.get()
-        for i in rng:
-            if i.isnumeric():
-                nums_str += i
-            else:
-                nums_str += " "
-        for k in nums_str.split():
-            num_rng.append(int(k))
-        if len(num_rng) < 2:
-            return "Invalid input, please try again.\n"
-    return num_rng
+    return [int(s) for s in txt.split() if s.isdigit()]
 
 
 def shuf(word):
@@ -68,6 +51,7 @@ def update_list(lyst, correct_guesses):
 def word_game():
     """Function that runs the game after being given the
     chosen word and dict containing words to guess"""
+    output.configure(state='normal')
     total = guesses_total(my_game.words_dict)
     my_game.string = ""
 
@@ -80,16 +64,16 @@ def word_game():
 
     if len(my_game.correct_guesses) < total:
 
-        guess = txtinput.get()
+        guess = txtinput1.get()
         if my_game.low > len(guess):
             output.delete(0.0, END)
-            output.insert(END, my_game.string + "\nWord out of range, try again.")
+            output.insert(END, my_game.string + "\n\nWord out of range, try again.")
         elif len(guess) > my_game.high:
             output.delete(0.0, END)
-            output.insert(END, my_game.string + "\nWord out of range, try again.")
+            output.insert(END, my_game.string + "\n\nWord out of range, try again.")
         elif guess in my_game.correct_guesses:
             output.delete(0.0, END)
-            output.insert(END, my_game.string + "\nWord already guessed.")
+            output.insert(END, my_game.string + "\n\nWord already guessed.")
         else:
             if guess in my_game.words_dict[len(guess)]:
                 my_game.correct_guesses.append(guess)
@@ -98,10 +82,10 @@ def word_game():
                     my_game.string = my_game.string + "\n"
                     update_list(i, my_game.correct_guesses)
                 output.delete(0.0, END)
-                output.insert(END, my_game.string + "\nCorrect!")
+                output.insert(END, my_game.string + "\n\nCorrect!")
             else:
                 output.delete(0.0, END)
-                output.insert(END, my_game.string + "\nSorry. Try again")
+                output.insert(END, my_game.string + "\n\nSorry. Try again")
             for i in my_game.words_dict.values():
                 update_list(i, my_game.correct_guesses)
 
@@ -110,7 +94,8 @@ def word_game():
         output.insert(END, "You win!")
     else:
         print(my_game.answers)
-    txtinput.delete(0, END)
+    txtinput1.delete(0, END)
+    output.configure(state='disabled')
 
 
 def make_dict():
@@ -119,32 +104,32 @@ def make_dict():
     with open("words.txt", 'r', encoding="utf-8") as f:
         words = list(f.read().split())
 
-    nums = num_range()
-
+    output.configure(state='normal')
     # add high and low variables
-    low = nums[0]
-    high = nums[1]
+    low = num_range(txtinput1.get())[0]
+    high = num_range(txtinput2.get())[0]
 
     # Puts a cap on length of the highest word
     largest_word = 0
     for item in words:
         if len(item) > largest_word:
             largest_word = len(item)
-    if nums[1] > largest_word:
-        nums[1] = largest_word
+    if high > largest_word:
+        high = largest_word
     if low > largest_word:
-        print("No words of matching length")
-        quit()
+        output.delete(0.0, END)
+        output.insert(END, "No words of matching length")
+
 
     # Creates list of words to be used.
-    word_options = [word for word in words if len(word) == nums[1]]
+    word_options = [word for word in words if len(word) == high]
 
     # Randomizes the word
     chosen_word = random.choice(word_options)
 
     # Returns a list of all words that are subsets of the chosen word
     all_words = [word for word in words if set(word).issubset(chosen_word)
-                 if nums[1] >= len(word) >= nums[0]]
+                 if high >= len(word) >= low]
 
     # Removes words from all words that have too many of any letter
     bl = []
@@ -160,7 +145,7 @@ def make_dict():
     all_words = sorted(all_words)
     # Creates dict of words by word length
     words_dict = {}
-    for i in range(nums[0], nums[1] + 1):
+    for i in range(low, high + 1):
         words_dict[i] = [word for word in all_words if len(word) == i]
 
     answers = []
@@ -168,7 +153,10 @@ def make_dict():
         for i in words_dict[k]:
             answers.append(i)
 
-    txtinput.delete(0, END)
+    txtinput2.destroy()
+    low_label.destroy()
+    txtinput1.delete(0, END)
+    txtinput1.config(width=20)
     my_label.config(text="Enter a guess")
     btn.configure(command=word_game)
 
@@ -185,21 +173,37 @@ def make_dict():
         update_list(i, [])
     output.delete(0.0, END)
     output.insert(END, my_game.string)
+    output.configure(state='disabled')
 
 
 my_game = WordGame()
 root = Tk()
+root.configure(bg='#3C3F41')
 root.title("Word Game")
-hint = Label(root, text="Hint: ")
-my_label = Label(root, text="Enter minimum and maximum length of words you would like to play with: ")
-txtinput = Entry(root, width=20)
-btn = Button(root, text="Submit", width=6, command=make_dict)
-my_label2 = Label(root, text="Results")
-output = Text(root, width=75)
+input_frame = Frame(root)
+
+hint = Label(root, text="",bg='#3C3F41', fg='white', font=('Arial', 12))
+my_label = Label(root, text="Enter minimum and maximum length of words you would like to use: ", bg='#3C3F41', fg='white', font=('Arial', 12))
+txtinput1 = Entry(input_frame, width=5, bg='#3C3F41', fg='white')
+txtinput2 = Entry(input_frame, width=5, bg='#3C3F41', fg='white')
+btn = Button(root, text="Submit", width=6, bg='#444441', fg='white', command=make_dict, padx=2, pady=2)
+my_label2 = Label(root, text="Results", bg='#3C3F41', fg='white')
+
+output = Text(root, width=75, wrap="none")
+low_label = Label(input_frame, text="Low: \nHigh: ", bg='#3C3F41', fg='white', padx=2, pady=2)
+output.configure(state='disabled', bg='#2B2B2B', fg='white')
+sbar = Scrollbar(root, orient=HORIZONTAL)
+
 
 hint.pack()
 output.pack()
+sbar.pack(side=BOTTOM, fill=X)
+sbar.config(command=output.xview)
 my_label.pack()
-txtinput.pack()
+input_frame.pack()
+low_label.pack(in_=input_frame, side=LEFT)
+txtinput1.pack(in_=input_frame, side=TOP)
+txtinput2.pack(in_=input_frame, side=BOTTOM)
 btn.pack()
+
 root.mainloop()
